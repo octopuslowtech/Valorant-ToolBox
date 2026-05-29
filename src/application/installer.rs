@@ -1,10 +1,11 @@
-use crate::config::{Config, MonitorSelection};
-use crate::dialog;
-use crate::display;
-use crate::paths::{config_path, ensure_data_folder, valorant_config_root};
-use crate::process::{has_nvidia_gpu, pnputil_disable, pnputil_enable};
-use crate::shortcut::{create_shortcut, remove_shortcut};
-use crate::{config, constants::APP_NAME, ini};
+use crate::domain::config::{Config, MonitorSelection};
+use crate::presentation::dialog;
+use crate::infrastructure::display;
+use crate::infrastructure::paths::{config_path, ensure_data_folder, valorant_config_root};
+use crate::infrastructure::process::{has_nvidia_gpu, pnputil_disable, pnputil_enable};
+use crate::presentation::shortcut::{create_shortcut, remove_shortcut};
+use crate::domain::{config, constants::APP_NAME};
+use crate::infrastructure::ini;
 
 const NVIDIA_MESSAGE: &str = "To prevent black bars in Valorant you must enable GPU scaling override:\n\n\
 1. Right-click your desktop -> NVIDIA Control Panel\n\

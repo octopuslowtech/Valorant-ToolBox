@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::constants::{APP_NAME, CONFIG_FILE};
+use crate::domain::constants::{APP_NAME, CONFIG_FILE};
 
 pub fn documents_dir() -> PathBuf {
     let home = std::env::var("USERPROFILE").unwrap_or_default();

@@ -1,8 +1,8 @@
 use std::os::windows::process::CommandExt;
 use std::process::Command;
 
-use crate::constants::APP_NAME;
-use crate::paths::{documents_dir, ensure_data_folder, permanent_icon_path};
+use crate::domain::constants::APP_NAME;
+use crate::infrastructure::paths::{documents_dir, ensure_data_folder, permanent_icon_path};
 
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 

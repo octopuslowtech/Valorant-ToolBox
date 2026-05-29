@@ -1,8 +1,9 @@
 use std::sync::mpsc::Sender;
 
-use crate::config::{Config, SessionData};
-use crate::paths::{ensure_data_folder, session_data_path, valorant_config_root};
-use crate::{display, ini, installer, nvidia};
+use crate::domain::config::{Config, SessionData};
+use crate::infrastructure::paths::{ensure_data_folder, session_data_path, valorant_config_root};
+use crate::infrastructure::{display, ini, nvidia};
+use crate::application::installer;
 #[derive(Clone)]
 pub enum Status {
     Idle,
@@ -40,7 +41,7 @@ pub fn run(cfg: Config, tx: Sender<WorkerMsg>) {
     let session_path = session_data_path();
     if !session_path.exists() {
         let session = SessionData { x: orig_x, y: orig_y, hz: orig_hz };
-        let _ = crate::config::save_session(&session_path, &session);
+        let _ = crate::domain::config::save_session(&session_path, &session);
     }
 
     if cfg.enable_nvidia_scaling {

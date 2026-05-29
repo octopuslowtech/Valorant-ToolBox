@@ -2,8 +2,8 @@ use std::path::Path;
 
 use walkdir::WalkDir;
 
-use crate::constants::ELITE_INI_TEMPLATE;
-use crate::paths::set_read_only;
+use crate::domain::constants::ELITE_INI_TEMPLATE;
+use crate::infrastructure::paths::set_read_only;
 
 const STANDARD_RULES: &[(&str, &str)] = &[
     ("LastUserConfirmedResolutionSizeX=", "LastUserConfirmedResolutionSizeX={X}"),

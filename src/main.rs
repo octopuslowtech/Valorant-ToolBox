@@ -1,28 +1,12 @@
 #![windows_subsystem = "windows"]
 
 mod admin;
-mod app;
-mod blood;
-mod config;
-mod constants;
-mod dialog;
-mod display;
-mod ini;
-mod installer;
-mod lang;
-mod launcher;
-mod logger;
-mod monitors;
-mod nvidia;
-mod paths;
-mod process;
-mod riot;
-mod shortcut;
-mod startup;
-mod vibrance;
-mod worker;
+mod application;
+mod domain;
+mod infrastructure;
+mod presentation;
 
-use config::Config;
+use domain::config::Config;
 use windows::core::w;
 use windows::Win32::Foundation::{CloseHandle, GetLastError, ERROR_ALREADY_EXISTS};
 use windows::Win32::System::Threading::CreateMutexW;
@@ -37,12 +21,12 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
 
     if args.iter().any(|a| a == "--launch") {
-        launcher::launch_toolbox();
+        application::launcher::launch_toolbox();
         return;
     }
 
     if args.iter().any(|a| a == "--uninstall-direct") {
-        installer::run_uninstall(true);
+        application::installer::run_uninstall(true);
         return;
     }
 
@@ -51,7 +35,7 @@ fn main() {
         let y = get_arg(&args, "--res-y=").unwrap_or_else(|| "1080".into());
         let perf = get_arg(&args, "--perf=").unwrap_or_else(|| "1".into()) != "0";
         let raw_monitors = get_arg(&args, "--monitors=").unwrap_or_default();
-        let monitors = installer::parse_monitors_arg(&raw_monitors);
+        let monitors = application::installer::parse_monitors_arg(&raw_monitors);
 
         let cfg = Config {
             x,
@@ -60,7 +44,7 @@ fn main() {
             monitors,
             ..Config::default_features()
         };
-        installer::perform_install(&cfg, true);
+        application::installer::perform_install(&cfg, true);
         return;
     }
 
@@ -70,11 +54,11 @@ fn main() {
     }
 
     if !acquire_single_instance() {
-        dialog::info("Valorant-ToolBox", "Valorant-ToolBox is already running.");
+        presentation::dialog::info("Valorant-ToolBox", "Valorant-ToolBox is already running.");
         return;
     }
 
-    let _ = app::run();
+    let _ = presentation::app::run();
 }
 
 fn acquire_single_instance() -> bool {

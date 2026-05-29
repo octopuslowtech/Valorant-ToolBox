@@ -1,15 +1,16 @@
 use std::time::{Duration, Instant};
 
-use crate::config::{self, SessionData};
-use crate::display;
-use crate::ini;
-use crate::logger::Logger;
-use crate::paths::{
+use crate::domain::config::{self, SessionData};
+use crate::infrastructure::display;
+use crate::infrastructure::ini;
+use crate::presentation::logger::Logger;
+use crate::infrastructure::paths::{
     config_path, ensure_data_folder, log_path, session_data_path, valorant_config_root,
 };
-use crate::process::is_process_running;
-use crate::riot::{get_riot_client_path, scan_drives_for_riot};
-use crate::{admin, dialog};
+use crate::infrastructure::process::is_process_running;
+use crate::infrastructure::riot::{get_riot_client_path, scan_drives_for_riot};
+use crate::admin;
+use crate::presentation::dialog;
 
 const STARTUP_TIMEOUT: u64 = 300;
 const POLL_INTERVAL: u64 = 3;
@@ -239,7 +240,7 @@ pub fn restore_and_exit(fallback_x: i32, fallback_y: i32) {
 
     display::set_resolution(res_x as u32, res_y as u32, res_hz);
 
-    let vbs_path = crate::paths::documents_dir().join("_make_shortcut.vbs");
+    let vbs_path = crate::infrastructure::paths::documents_dir().join("_make_shortcut.vbs");
     let _ = std::fs::remove_file(&vbs_path);
 
     std::process::exit(0);

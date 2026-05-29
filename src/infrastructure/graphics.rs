@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use walkdir::WalkDir;
 
-use crate::paths::set_read_only;
+use crate::infrastructure::paths::set_read_only;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum GraphicsPreset {

@@ -1,7 +1,7 @@
 use winreg::enums::HKEY_LOCAL_MACHINE;
 use winreg::RegKey;
 
-use crate::constants::MONITOR_CLASS_GUID;
+use crate::domain::constants::MONITOR_CLASS_GUID;
 
 #[derive(Clone)]
 pub struct MonitorEntry {

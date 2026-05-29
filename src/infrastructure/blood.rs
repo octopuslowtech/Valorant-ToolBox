@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
-use crate::constants::BLOOD_FILES;
-use crate::paths::backup_dir;
+use crate::domain::constants::BLOOD_FILES;
+use crate::infrastructure::paths::backup_dir;
 
 pub fn find_paks_dir() -> Option<PathBuf> {
     for letter in b'A'..=b'Z' {

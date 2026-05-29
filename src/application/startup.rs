@@ -1,7 +1,7 @@
 use winreg::enums::{HKEY_CURRENT_USER, KEY_QUERY_VALUE, KEY_SET_VALUE};
 use winreg::RegKey;
 
-use crate::constants::APP_NAME;
+use crate::domain::constants::APP_NAME;
 
 const RUN_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Run";
 

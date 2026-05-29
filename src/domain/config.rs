@@ -31,6 +31,8 @@ pub struct Config {
     pub custom_h: String,
     #[serde(default = "default_vibrance_level")]
     pub vibrance_level: i32,
+    #[serde(default)]
+    pub selected_preset: String,
 }
 
 impl Config {
@@ -56,6 +58,7 @@ impl Config {
             custom_w: String::new(),
             custom_h: String::new(),
             vibrance_level: 50,
+            selected_preset: String::new(),
         }
     }
 }

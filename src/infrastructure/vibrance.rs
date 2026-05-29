@@ -254,11 +254,11 @@ impl VibranceState {
     }
 
     pub fn start(&self) {
+        self.enabled.store(true, Ordering::Relaxed);
         if self.running.load(Ordering::Relaxed) {
             return;
         }
         self.running.store(true, Ordering::Relaxed);
-        self.enabled.store(true, Ordering::Relaxed);
 
         let enabled = self.enabled.clone();
         let ingame = self.ingame_level.clone();
