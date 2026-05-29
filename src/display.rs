@@ -41,28 +41,6 @@ pub fn current_refresh_rate() -> u32 {
     60
 }
 
-pub fn enumerate_modes(native_w: i32, native_h: i32) -> Vec<(u32, u32)> {
-    let mut seen: Vec<(u32, u32)> = Vec::new();
-    unsafe {
-        let mut i = 0u32;
-        loop {
-            let mut dm = new_devmode();
-            if !EnumDisplaySettingsW(PCWSTR::null(), windows::Win32::Graphics::Gdi::ENUM_DISPLAY_SETTINGS_MODE(i), &mut dm).as_bool() {
-                break;
-            }
-            let (w, h) = (dm.dmPelsWidth, dm.dmPelsHeight);
-            if w > 0 && h > 0 && (w as i32, h as i32) != (native_w, native_h) {
-                let pair = (w, h);
-                if !seen.contains(&pair) {
-                    seen.push(pair);
-                }
-            }
-            i += 1;
-        }
-    }
-    seen.sort_by(|a, b| b.0.cmp(&a.0).then(b.1.cmp(&a.1)));
-    seen
-}
 
 fn primary_device_name() -> Option<Vec<u16>> {
     unsafe {

@@ -128,3 +128,11 @@ r.RayTracing.EnableInGame=False
 [ShaderPipelineCache.CacheFile]
 LastOpened=ShooterGame
 "#;
+
+pub const BLOOD_FILES: &[&str] = &[
+    "MatureData-WindowsClient.pak",
+    "MatureData-WindowsClient.sig",
+    "MatureData-WindowsClient.ucas",
+    "MatureData-WindowsClient.utoc",
+];
+

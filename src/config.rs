@@ -13,6 +13,22 @@ pub struct Config {
     pub perf: bool,
     #[serde(default)]
     pub monitors: Vec<MonitorSelection>,
+    #[serde(default = "default_true")]
+    pub enable_blood: bool,
+    #[serde(default = "default_true")]
+    pub enable_vng_remove: bool,
+    #[serde(default = "default_true")]
+    pub enable_nvidia_scaling: bool,
+    #[serde(default = "default_language")]
+    pub language: String,
+#[serde(default = "default_true")]
+    pub minimize_to_tray: bool,
+    #[serde(default = "default_graphics_preset")]
+    pub graphics_preset: String,
+    #[serde(default)]
+    pub custom_w: String,
+    #[serde(default)]
+    pub custom_h: String,
 }
 
 impl Config {
@@ -21,6 +37,23 @@ impl Config {
             .iter()
             .flat_map(|m| m.instance_ids.clone())
             .collect()
+    }
+
+    pub fn default_features() -> Config {
+        Config {
+            x: "1440".to_string(),
+            y: "1080".to_string(),
+            perf: true,
+            monitors: Vec::new(),
+            enable_blood: true,
+            enable_vng_remove: true,
+            enable_nvidia_scaling: true,
+            language: "en".to_string(),
+            minimize_to_tray: true,
+            graphics_preset: "low".to_string(),
+            custom_w: String::new(),
+            custom_h: String::new(),
+        }
     }
 }
 
@@ -49,4 +82,16 @@ pub fn load_session(path: &std::path::Path) -> Option<SessionData> {
 pub fn save_session(path: &std::path::Path, data: &SessionData) -> std::io::Result<()> {
     let text = serde_json::to_string(data)?;
     std::fs::write(path, text)
+}
+
+fn default_true() -> bool {
+    true
+}
+
+fn default_language() -> String {
+    "en".to_string()
+}
+
+fn default_graphics_preset() -> String {
+    "low".to_string()
 }

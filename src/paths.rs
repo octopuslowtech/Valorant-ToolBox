@@ -63,3 +63,8 @@ pub fn set_read_only(path: &std::path::Path, read_only: bool) {
         let _ = std::fs::set_permissions(path, perms);
     }
 }
+
+pub fn backup_dir() -> PathBuf {
+    documents_dir().join(".originals_backup")
+}
+

@@ -1,23 +1,30 @@
 #![windows_subsystem = "windows"]
 
 mod admin;
+mod app;
+mod blood;
 mod config;
 mod constants;
 mod dialog;
 mod display;
-mod gui;
 mod ini;
 mod installer;
+mod lang;
 mod launcher;
 mod logger;
 mod monitors;
+mod nvidia;
 mod paths;
 mod process;
 mod riot;
 mod shortcut;
 mod startup;
+mod worker;
 
 use config::Config;
+use windows::core::w;
+use windows::Win32::Foundation::{CloseHandle, GetLastError, ERROR_ALREADY_EXISTS};
+use windows::Win32::System::Threading::CreateMutexW;
 
 fn get_arg(args: &[String], prefix: &str) -> Option<String> {
     args.iter()
@@ -50,10 +57,34 @@ fn main() {
             y,
             perf,
             monitors,
+            ..Config::default_features()
         };
         installer::perform_install(&cfg, true);
         return;
     }
 
-    let _ = gui::run_setup();
+    if !admin::is_admin() {
+        admin::elevate("");
+        return;
+    }
+
+    if !acquire_single_instance() {
+        dialog::info("Valorant-ToolBox", "Valorant-ToolBox is already running.");
+        return;
+    }
+
+    let _ = app::run();
+}
+
+fn acquire_single_instance() -> bool {
+    unsafe {
+        let handle = CreateMutexW(None, true, w!("Global\\ValorantToolBox_SingleInstance"));
+        if GetLastError() == ERROR_ALREADY_EXISTS {
+            if let Ok(h) = handle {
+                let _ = CloseHandle(h);
+            }
+            return false;
+        }
+        true
+    }
 }
