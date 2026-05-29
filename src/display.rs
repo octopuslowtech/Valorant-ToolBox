@@ -1,5 +1,4 @@
 use windows::core::PCWSTR;
-use windows::Win32::Foundation::{LPARAM, WPARAM};
 use windows::Win32::Graphics::Gdi::{
     ChangeDisplaySettingsExW, EnumDisplayDevicesW, EnumDisplaySettingsW, CDS_NORESET,
     CDS_TEST, CDS_TYPE, CDS_UPDATEREGISTRY, DEVMODEW, DISPLAY_DEVICEW,
@@ -7,9 +6,7 @@ use windows::Win32::Graphics::Gdi::{
     DM_PELSWIDTH, ENUM_CURRENT_SETTINGS,
 };
 use windows::Win32::UI::HiDpi::{SetProcessDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2};
-use windows::Win32::UI::WindowsAndMessaging::{
-    GetSystemMetrics, SendMessageW, HWND_BROADCAST, SM_CXSCREEN, SM_CYSCREEN, WM_DISPLAYCHANGE,
-};
+use windows::Win32::UI::WindowsAndMessaging::{GetSystemMetrics, SM_CXSCREEN, SM_CYSCREEN};
 
 pub fn set_dpi_aware() {
     unsafe {
@@ -113,8 +110,6 @@ pub fn set_resolution(width: u32, height: u32, hz: u32) -> bool {
             }
         };
 
-        let lparam = (height as i32) | ((width as i32) << 16);
-        let _ = SendMessageW(HWND_BROADCAST, WM_DISPLAYCHANGE, WPARAM(32), LPARAM(lparam as isize));
         ok
     }
 }
