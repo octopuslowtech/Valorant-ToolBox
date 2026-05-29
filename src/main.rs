@@ -19,6 +19,7 @@ mod process;
 mod riot;
 mod shortcut;
 mod startup;
+mod vibrance;
 mod worker;
 
 use config::Config;

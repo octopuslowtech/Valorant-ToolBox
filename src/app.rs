@@ -12,15 +12,11 @@ use crate::config::{Config, MonitorSelection};
 use crate::constants::APP_NAME;
 use crate::lang::{t, Lang};
 use crate::paths::config_path;
+use crate::vibrance::VibranceState;
 use crate::worker::{Status, WorkerMsg};
 use crate::{blood, config, display};
 
 
-#[derive(PartialEq)]
-enum Tab {
-    Overview,
-    Advanced,
-}
 
 pub struct ToolboxApp {
     resolutions: Vec<String>,
@@ -28,7 +24,6 @@ pub struct ToolboxApp {
     custom_w: String,
     custom_h: String,
     perf: bool,
-    tab: Tab,
     run_on_startup: bool,
     lang: Lang,
     enable_blood: bool,
@@ -43,6 +38,8 @@ pub struct ToolboxApp {
     quitting: bool,
     gpu_names: Vec<String>,
     gpu_is_amd: bool,
+    vibrance: VibranceState,
+    vibrance_level: i32,
 }
 
 impl ToolboxApp {
@@ -80,13 +77,21 @@ impl ToolboxApp {
         let tray_show = Arc::new(AtomicBool::new(false));
         let tray = build_tray(Lang::from_str(&feat.language), ctx, tray_show.clone());
 
+        let vibrance = VibranceState::new(gpu_is_amd);
+        let vibrance_level = feat.vibrance_level;
+
+        if vibrance_level != 50 {
+            let nv_level = map_percent_to_level(vibrance_level, gpu_is_amd);
+            vibrance.ingame_level.store(nv_level, Ordering::Relaxed);
+            vibrance.start();
+        }
+
         ToolboxApp {
             resolutions,
             selected_res,
             custom_w: feat.custom_w,
             custom_h: feat.custom_h,
             perf: feat.perf,
-            tab: Tab::Overview,
             run_on_startup: crate::startup::is_startup_enabled(),
             lang: Lang::from_str(&feat.language),
             enable_blood: feat.enable_blood,
@@ -101,6 +106,8 @@ impl ToolboxApp {
             quitting: false,
             gpu_names,
             gpu_is_amd,
+            vibrance,
+            vibrance_level,
         }
     }
 
@@ -135,6 +142,7 @@ impl ToolboxApp {
             graphics_preset: "low".to_string(),
             custom_w: self.custom_w.clone(),
             custom_h: self.custom_h.clone(),
+            vibrance_level: self.vibrance_level,
         }
     }
 
@@ -265,9 +273,16 @@ fn build_tray(lang: Lang, ctx: &egui::Context, show_flag: Arc<AtomicBool>) -> Op
 impl eframe::App for ToolboxApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let mut visuals = egui::Visuals::dark();
-        visuals.panel_fill = egui::Color32::from_rgb(18, 18, 24);
-        visuals.window_fill = egui::Color32::from_rgb(18, 18, 24);
-        visuals.faint_bg_color = egui::Color32::from_rgb(25, 25, 35);
+        visuals.panel_fill = egui::Color32::from_rgb(15, 25, 35);
+        visuals.window_fill = egui::Color32::from_rgb(15, 25, 35);
+        visuals.faint_bg_color = egui::Color32::from_rgb(20, 32, 44);
+        visuals.extreme_bg_color = egui::Color32::from_rgb(8, 14, 20);
+        visuals.widgets.noninteractive.bg_fill = egui::Color32::from_rgb(20, 32, 44);
+        visuals.widgets.inactive.bg_fill = egui::Color32::from_rgb(25, 40, 55);
+        visuals.widgets.hovered.bg_fill = egui::Color32::from_rgb(35, 55, 75);
+        visuals.widgets.active.bg_fill = egui::Color32::from_rgb(255, 70, 85);
+        visuals.selection.bg_fill = egui::Color32::from_rgb(255, 70, 85);
+        visuals.override_text_color = Some(egui::Color32::from_rgb(230, 237, 243));
         ctx.set_visuals(visuals);
 
         self.drain_worker();
@@ -292,60 +307,37 @@ impl eframe::App for ToolboxApp {
             std::process::exit(0);
         }
 
-        egui::TopBottomPanel::bottom("play_panel")
-            .frame(egui::Frame::none().inner_margin(egui::Margin::symmetric(8.0, 4.0)))
+        egui::TopBottomPanel::bottom("footer")
+            .frame(egui::Frame::none().inner_margin(egui::Margin::symmetric(12.0, 6.0)))
             .show(ctx, |ui| {
-            egui::Frame::none()
-                .fill(egui::Color32::from_rgb(10, 10, 14))
-                .rounding(4.0)
-                .inner_margin(6.0)
-                .stroke(egui::Stroke::new(1.0, egui::Color32::from_rgb(40, 40, 55)))
-                .show(ui, |ui| {
-                    egui::ScrollArea::vertical()
-                        .max_height(60.0)
-                        .auto_shrink([false, false])
-                        .stick_to_bottom(true)
-                        .show(ui, |ui| {
-                            for line in &self.log_lines {
-                                ui.label(egui::RichText::new(line).monospace().size(11.0).color(egui::Color32::from_rgb(140, 220, 140)));
-                            }
-                        });
+                ui.horizontal(|ui| {
+                    if self.gpu_names.is_empty() {
+                        ui.colored_label(egui::Color32::from_rgb(125, 133, 144), "GPU: Unknown");
+                    } else if self.gpu_is_amd {
+                        let name = self.gpu_names.join(", ");
+                        ui.colored_label(egui::Color32::from_rgb(255, 70, 85), format!("{}  (unsupported)", name));
+                    } else {
+                        let name = self.gpu_names.join(", ");
+                        ui.colored_label(egui::Color32::from_rgb(23, 232, 160), &name);
+                    }
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        ui.hyperlink_to("@anonymususer000012", "https://t.me/anonymususer000012");
+                    });
                 });
-            ui.add_space(2.0);
-            ui.horizontal(|ui| {
-                if self.gpu_names.is_empty() {
-                    ui.colored_label(egui::Color32::GRAY, "Unknown");
-                } else if self.gpu_is_amd {
-                    let name = self.gpu_names.join(", ");
-                    ui.colored_label(egui::Color32::from_rgb(220, 50, 50), format!("{} — Not supported (AMD)", name));
-                } else {
-                    let name = self.gpu_names.join(", ");
-                    ui.colored_label(egui::Color32::from_rgb(50, 200, 80), &name);
-                }
-                ui.label("|");
-                ui.label("Contacts:");
-                ui.hyperlink_to("@anonymususer000012", "https://t.me/anonymususer000012");
             });
-            ui.add_space(2.0);
-        });
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.add_space(8.0);
-            ui.horizontal(|ui| {
-                ui.selectable_value(&mut self.tab, Tab::Overview, t(self.lang, "tab_overview"));
-                ui.selectable_value(&mut self.tab, Tab::Advanced, t(self.lang, "tab_advanced"));
+        egui::CentralPanel::default()
+            .frame(egui::Frame::none().inner_margin(egui::Margin::symmetric(16.0, 12.0)))
+            .show(ctx, |ui| {
+                ui.add_space(4.0);
+                self.ui_resolution(ui);
+                ui.add_space(16.0);
+                self.ui_vibrance(ui);
+                ui.add_space(12.0);
+                self.ui_log(ui);
+                ui.add_space(12.0);
+                self.ui_settings(ui);
             });
-            ui.add_space(6.0);
-            ui.separator();
-            ui.add_space(6.0);
-
-            egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
-                match self.tab {
-                    Tab::Overview => self.ui_overview(ui),
-                    Tab::Advanced => self.ui_advanced(ui),
-                }
-            });
-        });
 
         if self.busy {
             ctx.request_repaint_after(std::time::Duration::from_millis(150));
@@ -356,89 +348,138 @@ impl eframe::App for ToolboxApp {
 }
 
 impl ToolboxApp {
-    fn ui_overview(&mut self, ui: &mut egui::Ui) {
+    fn ui_resolution(&mut self, ui: &mut egui::Ui) {
         egui::Frame::none()
-            .inner_margin(12.0)
+            .fill(egui::Color32::from_rgb(20, 32, 44))
+            .rounding(6.0)
+            .inner_margin(14.0)
             .show(ui, |ui| {
-                ui.label(egui::RichText::new(t(self.lang, "stretch_title")).strong().size(15.0));
+                ui.label(egui::RichText::new(t(self.lang, "stretch_title")).strong().size(14.0));
                 ui.add_space(8.0);
-
                 ui.horizontal(|ui| {
-                    ui.label(t(self.lang, "select_res"));
                     egui::ComboBox::from_id_salt("res_combo")
                         .selected_text(&self.selected_res)
-                        .width(180.0)
+                        .width(200.0)
                         .show_ui(ui, |ui| {
                             for res in &self.resolutions.clone() {
                                 ui.selectable_value(&mut self.selected_res, res.clone(), res);
                             }
                         });
+
+                    if self.selected_res == "Custom" {
+                        ui.add_space(8.0);
+                        ui.add(egui::TextEdit::singleline(&mut self.custom_w).desired_width(50.0).hint_text("W"));
+                        ui.label("\u{00d7}");
+                        ui.add(egui::TextEdit::singleline(&mut self.custom_h).desired_width(50.0).hint_text("H"));
+                    }
                 });
 
-                ui.add_space(6.0);
+                ui.add_space(10.0);
                 ui.horizontal(|ui| {
-                    if self.selected_res == "Custom" {
-                        ui.label("W:");
-                        ui.add(egui::TextEdit::singleline(&mut self.custom_w).desired_width(60.0));
-                        ui.label("H:");
-                        ui.add(egui::TextEdit::singleline(&mut self.custom_h).desired_width(60.0));
-                        ui.add_space(8.0);
-                    }
-
                     let apply_btn = egui::Button::new(
-                        egui::RichText::new(t(self.lang, "stretch_apply")).color(egui::Color32::WHITE)
+                        egui::RichText::new(t(self.lang, "stretch_apply")).color(egui::Color32::WHITE).strong()
                     )
-                        .fill(egui::Color32::from_rgb(40, 140, 60))
-                        .min_size(egui::vec2(90.0, 28.0));
+                        .fill(egui::Color32::from_rgb(255, 70, 85))
+                        .rounding(4.0)
+                        .min_size(egui::vec2(100.0, 30.0));
                     if ui.add_enabled(!self.busy, apply_btn).clicked() {
                         self.start_play();
                     }
 
+                    ui.add_space(6.0);
                     let revert_btn = egui::Button::new(
-                        egui::RichText::new(t(self.lang, "stretch_revert")).color(egui::Color32::WHITE)
+                        egui::RichText::new(t(self.lang, "stretch_revert")).color(egui::Color32::from_rgb(200, 200, 210))
                     )
-                        .fill(egui::Color32::from_rgb(140, 60, 40))
-                        .min_size(egui::vec2(80.0, 28.0));
+                        .fill(egui::Color32::TRANSPARENT)
+                        .stroke(egui::Stroke::new(1.0, egui::Color32::from_rgb(80, 90, 110)))
+                        .rounding(4.0)
+                        .min_size(egui::vec2(90.0, 30.0));
                     if ui.add_enabled(!self.busy, revert_btn).clicked() {
                         self.revert_resolution();
                     }
-                });
-                ui.add_space(4.0);
-                ui.label(egui::RichText::new("Note: Restart Valorant after Apply/Revert for changes to take effect.").size(11.0).color(egui::Color32::from_rgb(255, 180, 50)));
 
-                if self.busy {
-                    ui.add_space(6.0);
-                    ui.horizontal(|ui| {
+                    if self.busy {
+                        ui.add_space(8.0);
                         ui.spinner();
-                        ui.colored_label(egui::Color32::from_rgb(100, 180, 255), "Applying...");
-                    });
-                }
+                    }
+                });
             });
-
     }
 
+    fn ui_log(&mut self, ui: &mut egui::Ui) {
+        egui::Frame::none()
+            .fill(egui::Color32::from_rgb(8, 14, 20))
+            .rounding(4.0)
+            .inner_margin(8.0)
+            .stroke(egui::Stroke::new(1.0, egui::Color32::from_rgb(30, 45, 60)))
+            .show(ui, |ui| {
+                egui::ScrollArea::vertical()
+                    .max_height(55.0)
+                    .auto_shrink([false, false])
+                    .stick_to_bottom(true)
+                    .show(ui, |ui| {
+                        for line in &self.log_lines {
+                            ui.label(egui::RichText::new(line).monospace().size(10.0).color(egui::Color32::from_rgb(125, 133, 144)));
+                        }
+                    });
+            });
+    }
 
-    fn ui_advanced(&mut self, ui: &mut egui::Ui) {
+    fn ui_vibrance(&mut self, ui: &mut egui::Ui) {
+        egui::Frame::none()
+            .fill(egui::Color32::from_rgb(20, 32, 44))
+            .rounding(6.0)
+            .inner_margin(14.0)
+            .show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    ui.label("Digital Vibrance");
+                    ui.colored_label(
+                        egui::Color32::from_rgb(125, 133, 144),
+                        if self.gpu_is_amd { "(AMD)" } else { "(NVIDIA)" },
+                    );
+                });
+                ui.add_space(6.0);
+                let slider = egui::Slider::new(&mut self.vibrance_level, 50..=100)
+                    .suffix("%");
+                if ui.add(slider).changed() {
+                    if self.vibrance_level != 50 {
+                        let nv_level = map_percent_to_level(self.vibrance_level, self.gpu_is_amd);
+                        self.vibrance.ingame_level.store(nv_level, Ordering::Relaxed);
+                        self.vibrance.start();
+                        self.vibrance.apply_immediate();
+                    } else {
+                        self.vibrance.stop();
+                    }
+                    let cfg = self.build_config();
+                    let _ = config::save_config(&config_path(), &cfg);
+                }
+            });
+    }
+
+    fn ui_settings(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
-            ui.label(t(self.lang, "language"));
-            let mut is_vi = self.lang == Lang::Vi;
-            if ui.selectable_label(!is_vi, "English").clicked() {
+            ui.colored_label(egui::Color32::from_rgb(125, 133, 144), t(self.lang, "language"));
+            ui.add_space(4.0);
+            let is_vi = self.lang == Lang::Vi;
+            if ui.selectable_label(!is_vi, "EN").clicked() {
                 self.lang = Lang::En;
             }
-            if ui.selectable_label(is_vi, "Tieng Viet").clicked() {
+            if ui.selectable_label(is_vi, "VI").clicked() {
                 self.lang = Lang::Vi;
-                is_vi = true;
             }
-            let _ = is_vi;
+            ui.add_space(12.0);
+            if ui.checkbox(&mut self.run_on_startup, t(self.lang, "startup")).changed() {
+                crate::startup::set_startup(self.run_on_startup);
+            }
         });
+    }
+}
 
-        ui.add_space(8.0);
-        ui.separator();
-        ui.add_space(6.0);
-        if ui.checkbox(&mut self.run_on_startup, t(self.lang, "startup")).changed() {
-            crate::startup::set_startup(self.run_on_startup);
-        }
-        ui.colored_label(egui::Color32::GRAY, t(self.lang, "startup_hint"));
+fn map_percent_to_level(percent: i32, is_amd: bool) -> i32 {
+    if is_amd {
+        (percent - 50) * 2 + 100
+    } else {
+        (percent - 50) * 63 / 50
     }
 }
 
@@ -453,7 +494,7 @@ fn load_icon() -> Option<egui::IconData> {
 
 pub fn run() -> eframe::Result<()> {
     let mut viewport = egui::ViewportBuilder::default()
-        .with_inner_size([480.0, 340.0])
+        .with_inner_size([460.0, 320.0])
         .with_resizable(true);
     if let Some(icon) = load_icon() {
         viewport = viewport.with_icon(icon);

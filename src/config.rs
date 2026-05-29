@@ -29,6 +29,8 @@ pub struct Config {
     pub custom_w: String,
     #[serde(default)]
     pub custom_h: String,
+    #[serde(default = "default_vibrance_level")]
+    pub vibrance_level: i32,
 }
 
 impl Config {
@@ -53,6 +55,7 @@ impl Config {
             graphics_preset: "low".to_string(),
             custom_w: String::new(),
             custom_h: String::new(),
+            vibrance_level: 50,
         }
     }
 }
@@ -94,4 +97,8 @@ fn default_language() -> String {
 
 fn default_graphics_preset() -> String {
     "low".to_string()
+}
+
+fn default_vibrance_level() -> i32 {
+    50
 }
