@@ -19,8 +19,8 @@ pub fn is_process_running(name: &str) -> bool {
 }
 
 pub fn has_nvidia_gpu() -> bool {
-    let output = Command::new("wmic")
-        .args(["path", "win32_VideoController", "get", "name"])
+    let output = Command::new("powershell")
+        .args(["-NoProfile", "-Command", "Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name"])
         .creation_flags(CREATE_NO_WINDOW)
         .output();
     match output {
@@ -47,15 +47,15 @@ pub fn pnputil_enable(instance_id: &str) {
 
 
 pub fn gpu_names() -> Vec<String> {
-    let output = Command::new("wmic")
-        .args(["path", "win32_VideoController", "get", "name"])
+    let output = Command::new("powershell")
+        .args(["-NoProfile", "-Command", "Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name"])
         .creation_flags(CREATE_NO_WINDOW)
         .output();
     match output {
         Ok(out) => String::from_utf8_lossy(&out.stdout)
             .lines()
             .map(|l| l.trim().to_string())
-            .filter(|l| !l.is_empty() && l.to_lowercase() != "name")
+            .filter(|l| !l.is_empty())
             .collect(),
         Err(_) => Vec::new(),
     }

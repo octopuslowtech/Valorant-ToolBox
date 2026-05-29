@@ -1,4 +1,3 @@
-use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{channel, Receiver};
 use std::sync::Arc;
@@ -12,16 +11,10 @@ use windows::Win32::UI::WindowsAndMessaging::{FindWindowW, SetForegroundWindow, 
 use crate::config::{Config, MonitorSelection};
 use crate::constants::APP_NAME;
 use crate::lang::{t, Lang};
-use crate::monitors::enumerate_monitors;
 use crate::paths::config_path;
 use crate::worker::{Status, WorkerMsg};
 use crate::{blood, config, display};
 
-struct MonitorRow {
-    name: String,
-    instance_ids: Vec<String>,
-    checked: bool,
-}
 
 #[derive(PartialEq)]
 enum Tab {
@@ -35,7 +28,6 @@ pub struct ToolboxApp {
     custom_w: String,
     custom_h: String,
     perf: bool,
-    monitors: Vec<MonitorRow>,
     tab: Tab,
     run_on_startup: bool,
     lang: Lang,
@@ -76,19 +68,6 @@ impl ToolboxApp {
                 resolutions.iter().find(|r| r.starts_with(&saved_key)).cloned()
             })
             .unwrap_or_else(|| resolutions[0].clone());
-        let raw = enumerate_monitors();
-        let mut grouped: BTreeMap<String, Vec<String>> = BTreeMap::new();
-        for m in raw {
-            grouped.entry(m.name).or_default().push(m.instance_id);
-        }
-        let monitors: Vec<MonitorRow> = grouped
-            .into_iter()
-            .map(|(name, instance_ids)| MonitorRow {
-                name,
-                instance_ids,
-                checked: false,
-            })
-            .collect();
 
         let feat = saved.unwrap_or_else(Config::default_features);
 
@@ -107,14 +86,13 @@ impl ToolboxApp {
             custom_w: feat.custom_w,
             custom_h: feat.custom_h,
             perf: feat.perf,
-            monitors,
             tab: Tab::Overview,
             run_on_startup: crate::startup::is_startup_enabled(),
             lang: Lang::from_str(&feat.language),
             enable_blood: feat.enable_blood,
             enable_vng_remove: feat.enable_vng_remove,
             enable_nvidia_scaling: feat.enable_nvidia_scaling,
-            log_lines: Vec::new(),
+            log_lines: vec!["Settings loaded.".to_string()],
             status: Status::Idle,
             busy: false,
             rx: None,
@@ -141,15 +119,14 @@ impl ToolboxApp {
             x,
             y,
             perf: self.perf,
-            monitors: self
-                .monitors
-                .iter()
-                .filter(|m| m.checked)
-                .map(|m| MonitorSelection {
-                    name: m.name.clone(),
-                    instance_ids: m.instance_ids.clone(),
-                })
-                .collect(),
+            monitors: {
+                let raw = crate::monitors::enumerate_monitors();
+                let mut grouped: std::collections::BTreeMap<String, Vec<String>> = std::collections::BTreeMap::new();
+                for m in raw {
+                    grouped.entry(m.name).or_default().push(m.instance_id);
+                }
+                grouped.into_iter().map(|(name, instance_ids)| MonitorSelection { name, instance_ids }).collect()
+            },
             enable_blood: self.enable_blood,
             enable_vng_remove: self.enable_vng_remove,
             enable_nvidia_scaling: self.enable_nvidia_scaling,
@@ -287,6 +264,12 @@ fn build_tray(lang: Lang, ctx: &egui::Context, show_flag: Arc<AtomicBool>) -> Op
 
 impl eframe::App for ToolboxApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        let mut visuals = egui::Visuals::dark();
+        visuals.panel_fill = egui::Color32::from_rgb(18, 18, 24);
+        visuals.window_fill = egui::Color32::from_rgb(18, 18, 24);
+        visuals.faint_bg_color = egui::Color32::from_rgb(25, 25, 35);
+        ctx.set_visuals(visuals);
+
         self.drain_worker();
 
         if self.tray_show.swap(false, Ordering::Relaxed) {
@@ -312,30 +295,35 @@ impl eframe::App for ToolboxApp {
         egui::TopBottomPanel::bottom("play_panel")
             .frame(egui::Frame::none().inner_margin(egui::Margin::symmetric(8.0, 4.0)))
             .show(ctx, |ui| {
-            egui::ScrollArea::vertical()
-                .max_height(70.0)
-                .auto_shrink([false, false])
-                .stick_to_bottom(true)
+            egui::Frame::none()
+                .fill(egui::Color32::from_rgb(10, 10, 14))
+                .rounding(4.0)
+                .inner_margin(6.0)
+                .stroke(egui::Stroke::new(1.0, egui::Color32::from_rgb(40, 40, 55)))
                 .show(ui, |ui| {
-                    for line in &self.log_lines {
-                        ui.label(egui::RichText::new(line).monospace().size(11.0));
-                    }
+                    egui::ScrollArea::vertical()
+                        .max_height(60.0)
+                        .auto_shrink([false, false])
+                        .stick_to_bottom(true)
+                        .show(ui, |ui| {
+                            for line in &self.log_lines {
+                                ui.label(egui::RichText::new(line).monospace().size(11.0).color(egui::Color32::from_rgb(140, 220, 140)));
+                            }
+                        });
                 });
             ui.add_space(2.0);
             ui.horizontal(|ui| {
                 if self.gpu_names.is_empty() {
-                    ui.colored_label(egui::Color32::GRAY, "GPU: Unknown");
+                    ui.colored_label(egui::Color32::GRAY, "Unknown");
                 } else if self.gpu_is_amd {
                     let name = self.gpu_names.join(", ");
-                    ui.colored_label(egui::Color32::from_rgb(220, 50, 50), format!("GPU: {} — Not supported (AMD)", name));
+                    ui.colored_label(egui::Color32::from_rgb(220, 50, 50), format!("{} — Not supported (AMD)", name));
                 } else {
                     let name = self.gpu_names.join(", ");
-                    ui.colored_label(egui::Color32::from_rgb(50, 200, 80), format!("GPU: {}", name));
+                    ui.colored_label(egui::Color32::from_rgb(50, 200, 80), &name);
                 }
-            });
-            ui.add_space(2.0);
-            ui.horizontal(|ui| {
-                ui.label("Telegram:");
+                ui.label("|");
+                ui.label("Contacts:");
                 ui.hyperlink_to("@anonymususer000012", "https://t.me/anonymususer000012");
             });
             ui.add_space(2.0);
@@ -415,6 +403,8 @@ impl ToolboxApp {
                         self.revert_resolution();
                     }
                 });
+                ui.add_space(4.0);
+                ui.label(egui::RichText::new("Note: Restart Valorant after Apply/Revert for changes to take effect.").size(11.0).color(egui::Color32::from_rgb(255, 180, 50)));
 
                 if self.busy {
                     ui.add_space(6.0);
@@ -425,14 +415,6 @@ impl ToolboxApp {
                 }
             });
 
-        if !self.monitors.is_empty() {
-            ui.add_space(8.0);
-            ui.label(egui::RichText::new(t(self.lang, "tab_advanced")).strong().size(13.0));
-            ui.add_space(4.0);
-            for mon in &mut self.monitors {
-                ui.checkbox(&mut mon.checked, &mon.name);
-            }
-        }
     }
 
 
