@@ -101,7 +101,7 @@ pub fn perform_install(cfg: &Config, show_dialogs: bool) -> bool {
             dialog::warn(
                 APP_NAME,
                 "Installation complete but the desktop shortcut could not be created.\n\
-                 You can run StretchyVal.exe directly with the --launch argument.",
+                 You can run Valorant-ToolBox.exe directly with the --launch argument.",
             );
         }
     }

@@ -35,7 +35,7 @@ fn valorant_running() -> bool {
     is_process_running("VALORANT-Win64-Shipping.exe") || is_process_running("VALORANT.exe")
 }
 
-pub fn launch_stretchy() {
+pub fn launch_toolbox() {
     let cfg_path = config_path();
     if !cfg_path.exists() {
         return;

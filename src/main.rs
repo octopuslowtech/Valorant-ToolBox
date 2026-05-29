@@ -15,6 +15,7 @@ mod paths;
 mod process;
 mod riot;
 mod shortcut;
+mod startup;
 
 use config::Config;
 
@@ -28,7 +29,7 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
 
     if args.iter().any(|a| a == "--launch") {
-        launcher::launch_stretchy();
+        launcher::launch_toolbox();
         return;
     }
 

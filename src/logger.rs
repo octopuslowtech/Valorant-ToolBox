@@ -20,7 +20,7 @@ fn timestamp() -> String {
 impl Logger {
     pub fn create(path: PathBuf) -> Self {
         if let Ok(mut f) = std::fs::File::create(&path) {
-            let _ = writeln!(f, "=== StretchyVal Debug ===\n");
+            let _ = writeln!(f, "=== Valorant-ToolBox Debug ===\n");
         }
         Logger { path }
     }
