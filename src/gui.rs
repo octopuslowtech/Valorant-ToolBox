@@ -211,6 +211,14 @@ impl eframe::App for SetupApp {
                     );
                 }
             }
+
+            ui.add_space(8.0);
+            ui.separator();
+            ui.add_space(4.0);
+            ui.horizontal(|ui| {
+                ui.label("Telegram:");
+                ui.hyperlink_to("@anonymususer000012", "https://t.me/anonymususer000012");
+            });
         });
     }
 }
