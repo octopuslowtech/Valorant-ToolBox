@@ -134,10 +134,6 @@ impl SetupApp {
 impl eframe::App for SetupApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.vertical_centered(|ui| {
-                ui.add_space(8.0);
-                ui.heading(format!("{} SETUP", APP_NAME.to_uppercase()));
-            });
             ui.add_space(8.0);
 
             ui.horizontal(|ui| {
@@ -224,10 +220,25 @@ impl eframe::App for SetupApp {
 }
 
 pub fn run_setup() -> eframe::Result<()> {
+fn load_icon() -> Option<egui::IconData> {
+    let bytes = include_bytes!("../redyellow.ico");
+    let image = image::load_from_memory(bytes).ok()?.into_rgba8();
+    let (width, height) = image.dimensions();
+    Some(egui::IconData {
+        rgba: image.into_raw(),
+        width,
+        height,
+    })
+}
+
+    let mut viewport = egui::ViewportBuilder::default()
+        .with_inner_size([440.0, 620.0])
+        .with_resizable(false);
+    if let Some(icon) = load_icon() {
+        viewport = viewport.with_icon(icon);
+    }
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default()
-            .with_inner_size([440.0, 620.0])
-            .with_resizable(false),
+        viewport,
         ..Default::default()
     };
     eframe::run_native(

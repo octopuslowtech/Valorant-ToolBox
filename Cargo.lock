@@ -2059,6 +2059,7 @@ version = "2.0.0"
 dependencies = [
  "eframe",
  "egui",
+ "image",
  "serde",
  "serde_json",
  "walkdir",
