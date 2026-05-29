@@ -182,9 +182,10 @@ impl ToolboxApp {
         if let Some(data) = config::load_session(&session_path) {
             display::set_resolution(data.x as u32, data.y as u32, data.hz);
             self.log_lines.push(format!("Reverted to {}x{} @ {}hz", data.x, data.y, data.hz));
+            let _ = std::fs::remove_file(&session_path);
         } else {
             let (w, h) = display::current_resolution();
-            self.log_lines.push(format!("No session data — current: {}x{}", w, h));
+            self.log_lines.push(format!("No session data \u{2014} current: {}x{}", w, h));
         }
 
         let cfg = self.build_config();

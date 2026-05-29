@@ -37,8 +37,11 @@ pub fn run(cfg: Config, tx: Sender<WorkerMsg>) {
     log(&tx, format!("Native resolution: {}x{} @ {}hz", orig_x, orig_y, orig_hz));
 
     ensure_data_folder();
-    let session = SessionData { x: orig_x, y: orig_y, hz: orig_hz };
-    let _ = crate::config::save_session(&session_data_path(), &session);
+    let session_path = session_data_path();
+    if !session_path.exists() {
+        let session = SessionData { x: orig_x, y: orig_y, hz: orig_hz };
+        let _ = crate::config::save_session(&session_path, &session);
+    }
 
     if cfg.enable_nvidia_scaling {
         let (_, msg) = nvidia::set_scaling_fullscreen();
