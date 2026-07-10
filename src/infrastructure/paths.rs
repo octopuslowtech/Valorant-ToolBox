@@ -53,18 +53,14 @@ pub fn ensure_data_folder() {
     }
 }
 
-pub fn set_read_only(path: &std::path::Path, read_only: bool) {
+pub fn set_read_only(path: &std::path::Path, read_only: bool) -> bool {
     if !path.exists() {
-        return;
+        return false;
     }
     if let Ok(meta) = std::fs::metadata(path) {
         let mut perms = meta.permissions();
         perms.set_readonly(read_only);
-        let _ = std::fs::set_permissions(path, perms);
+        return std::fs::set_permissions(path, perms).is_ok();
     }
+    false
 }
-
-pub fn backup_dir() -> PathBuf {
-    documents_dir().join(".originals_backup")
-}
-

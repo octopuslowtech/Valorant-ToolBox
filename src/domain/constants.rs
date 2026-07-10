@@ -1,7 +1,5 @@
 pub const APP_NAME: &str = "Valorant-ToolBox";
 pub const CONFIG_FILE: &str = "ValorantToolBoxConfig.json";
-pub const MONITOR_CLASS_GUID: &str = "{4d36e96e-e325-11ce-bfc1-08002be10318}";
-
 pub const ELITE_INI_TEMPLATE: &str = r#"[/Script/ShooterGame.ShooterGameUserSettings]
 DefaultMonitorDeviceID=
 DefaultMonitorIndex=0
@@ -128,11 +126,3 @@ r.RayTracing.EnableInGame=False
 [ShaderPipelineCache.CacheFile]
 LastOpened=ShooterGame
 "#;
-
-pub const BLOOD_FILES: &[&str] = &[
-    "MatureData-WindowsClient.pak",
-    "MatureData-WindowsClient.sig",
-    "MatureData-WindowsClient.ucas",
-    "MatureData-WindowsClient.utoc",
-];
-

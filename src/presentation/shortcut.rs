@@ -6,6 +6,10 @@ use crate::infrastructure::paths::{documents_dir, ensure_data_folder, permanent_
 
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
+fn vbs_escape(value: &str) -> String {
+    value.replace('"', "\"\"")
+}
+
 pub fn create_shortcut() -> bool {
     ensure_data_folder();
 
@@ -39,10 +43,10 @@ pub fn create_shortcut() -> bool {
          oLink.WorkingDirectory = \"{wd}\"\r\n\
          oLink.IconLocation = \"{icon}\"\r\n\
          oLink.Save\r\n",
-        shortcut = shortcut_path,
-        target = exe,
-        wd = working_dir,
-        icon = icon,
+        shortcut = vbs_escape(&shortcut_path),
+        target = vbs_escape(&exe),
+        wd = vbs_escape(&working_dir),
+        icon = vbs_escape(&icon),
     );
 
     let vbs_path = documents_dir().join("_make_shortcut.vbs");

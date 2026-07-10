@@ -1,0 +1,17 @@
+{
+  "nextId": 2,
+  "tasks": [
+    {
+      "id": "1",
+      "subject": "Fix tray icon restore behavior",
+      "description": "Investigate why hidden app does not show again when tray icon is clicked, update egui/tray handling so clicking tray icon restores visible window, then run formatting and available checks.",
+      "status": "completed",
+      "activeForm": "Fixing tray restore",
+      "metadata": {},
+      "blocks": [],
+      "blockedBy": [],
+      "createdAt": 1782715889892,
+      "updatedAt": 1782716662038
+    }
+  ]
+}

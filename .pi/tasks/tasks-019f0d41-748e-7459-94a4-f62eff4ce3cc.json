@@ -1,0 +1,29 @@
+{
+  "nextId": 3,
+  "tasks": [
+    {
+      "id": "1",
+      "subject": "Investigate hidden-window CPU usage",
+      "description": "Find why app CPU usage rises when hidden to tray/menu and drops when shown. Inspect eframe/egui tray integration, repaint loop, worker/background timers, logging, and Windows-specific event handling. Report root cause and targeted fix.",
+      "status": "completed",
+      "activeForm": "Investigating hidden-window CPU usage",
+      "metadata": {},
+      "blocks": [],
+      "blockedBy": [],
+      "createdAt": 1782633850219,
+      "updatedAt": 1782634214298
+    },
+    {
+      "id": "2",
+      "subject": "Fix hidden-window CPU usage",
+      "description": "Modify tray hide/show flow to avoid hidden repaint loop, preserve reliable tray restore, remove risky state mismatch, then format and verify with cargo commands. Acceptance: hidden app schedules no egui repaint timer; tray click restores window reliably; code compiles and clippy passes where environment allows.",
+      "status": "completed",
+      "activeForm": "Fixing hidden-window CPU usage",
+      "metadata": {},
+      "blocks": [],
+      "blockedBy": [],
+      "createdAt": 1782634365074,
+      "updatedAt": 1782634593056
+    }
+  ]
+}

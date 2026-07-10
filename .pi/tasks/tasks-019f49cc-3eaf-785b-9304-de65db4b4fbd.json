@@ -1,0 +1,53 @@
+{
+  "nextId": 5,
+  "tasks": [
+    {
+      "id": "1",
+      "subject": "Explore project context",
+      "description": "Inspect current repository root and existing CLAUDE.md content before deciding minimal rename/update scope.",
+      "status": "completed",
+      "activeForm": "Exploring project context",
+      "metadata": {},
+      "blocks": [],
+      "blockedBy": [],
+      "createdAt": 1783649588269,
+      "updatedAt": 1783649616748
+    },
+    {
+      "id": "2",
+      "subject": "Confirm rename/update design",
+      "description": "Propose minimal approach for renaming CLAUDE.md to AGENTS.md and updating content to match current project reality; wait for user approval before editing.",
+      "status": "completed",
+      "activeForm": "Confirming rename design",
+      "metadata": {},
+      "blocks": [],
+      "blockedBy": [],
+      "createdAt": 1783649592209,
+      "updatedAt": 1783649661950
+    },
+    {
+      "id": "3",
+      "subject": "Rename and update agent guide",
+      "description": "Rename CLAUDE.md to AGENTS.md and write concise content matching current source tree and CLI reality.",
+      "status": "completed",
+      "activeForm": "Updating agent guide",
+      "metadata": {},
+      "blocks": [],
+      "blockedBy": [],
+      "createdAt": 1783649677358,
+      "updatedAt": 1783649742427
+    },
+    {
+      "id": "4",
+      "subject": "Verify repository formatting and lint",
+      "description": "Run available verification commands after documentation rename/update: cargo fmt --check and cargo clippy if possible.",
+      "status": "completed",
+      "activeForm": "Verifying repository",
+      "metadata": {},
+      "blocks": [],
+      "blockedBy": [],
+      "createdAt": 1783649682564,
+      "updatedAt": 1783649782863
+    }
+  ]
+}

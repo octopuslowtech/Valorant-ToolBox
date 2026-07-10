@@ -1,0 +1,17 @@
+{
+  "nextId": 2,
+  "tasks": [
+    {
+      "id": "1",
+      "subject": "Investigate hidden app CPU spike",
+      "description": "Find likely event loop, repaint, tray, or background worker paths causing high CPU when app window is hidden or minimized. Inspect GUI update loop and tray handling.",
+      "status": "completed",
+      "activeForm": "Investigating CPU spike",
+      "metadata": {},
+      "blocks": [],
+      "blockedBy": [],
+      "createdAt": 1782715921726,
+      "updatedAt": 1782716879411
+    }
+  ]
+}

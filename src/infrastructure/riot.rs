@@ -7,9 +7,15 @@ use winreg::RegKey;
 pub fn get_riot_client_path() -> Option<String> {
     let keys = [
         (HKEY_LOCAL_MACHINE, r"SOFTWARE\Riot Games\Riot Client"),
-        (HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Riot Games\Riot Client"),
+        (
+            HKEY_LOCAL_MACHINE,
+            r"SOFTWARE\WOW6432Node\Riot Games\Riot Client",
+        ),
         (HKEY_CURRENT_USER, r"SOFTWARE\Riot Games\Riot Client"),
-        (HKEY_CURRENT_USER, r"SOFTWARE\WOW6432Node\Riot Games\Riot Client"),
+        (
+            HKEY_CURRENT_USER,
+            r"SOFTWARE\WOW6432Node\Riot Games\Riot Client",
+        ),
     ];
 
     for (hive, path) in keys {
@@ -48,8 +54,12 @@ pub fn scan_drives_for_riot() -> Option<String> {
         }
         let bases = [
             PathBuf::from(&drive).join("Riot Games"),
-            PathBuf::from(&drive).join("Program Files").join("Riot Games"),
-            PathBuf::from(&drive).join("Program Files (x86)").join("Riot Games"),
+            PathBuf::from(&drive)
+                .join("Program Files")
+                .join("Riot Games"),
+            PathBuf::from(&drive)
+                .join("Program Files (x86)")
+                .join("Riot Games"),
         ];
         for base in bases {
             let candidate = base.join("Riot Client").join("RiotClientServices.exe");
@@ -63,7 +73,14 @@ pub fn scan_drives_for_riot() -> Option<String> {
 
 fn find_riot_from_process() -> Option<String> {
     let output = std::process::Command::new("wmic")
-        .args(["process", "where", "name='RiotClientServices.exe'", "get", "ExecutablePath", "/value"])
+        .args([
+            "process",
+            "where",
+            "name='RiotClientServices.exe'",
+            "get",
+            "ExecutablePath",
+            "/value",
+        ])
         .creation_flags(0x08000000)
         .output()
         .ok()?;

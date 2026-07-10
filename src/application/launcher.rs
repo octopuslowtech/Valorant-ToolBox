@@ -1,16 +1,17 @@
 use std::time::{Duration, Instant};
 
+use crate::admin;
+use crate::application::installer;
 use crate::domain::config::{self, SessionData};
 use crate::infrastructure::display;
 use crate::infrastructure::ini;
-use crate::presentation::logger::Logger;
 use crate::infrastructure::paths::{
     config_path, ensure_data_folder, log_path, session_data_path, valorant_config_root,
 };
 use crate::infrastructure::process::is_process_running;
 use crate::infrastructure::riot::{get_riot_client_path, scan_drives_for_riot};
-use crate::admin;
 use crate::presentation::dialog;
+use crate::presentation::logger::Logger;
 
 const STARTUP_TIMEOUT: u64 = 300;
 const POLL_INTERVAL: u64 = 3;
@@ -49,10 +50,7 @@ pub fn launch_toolbox() {
         Some(c) => c,
         None => return,
     };
-    log.log(&format!(
-        "Config: stretch={}x{} perf={}",
-        cfg.x, cfg.y, cfg.perf
-    ));
+    log.log(&format!("Config: stretch={}x{}", cfg.x, cfg.y));
 
     let root = valorant_config_root();
     if !root.exists() {
@@ -60,29 +58,43 @@ pub fn launch_toolbox() {
     }
 
     log.log("Patching INI files before launch...");
-    ini::run_installation(&root, &cfg.x, &cfg.y, cfg.perf);
+    ini::run_installation(&root, &cfg.x, &cfg.y);
     log.log("Pre-launch patch complete.");
 
     display::set_dpi_aware();
     let (orig_x, orig_y) = display::current_resolution();
-    log.log(&format!("Native resolution captured: {}x{}", orig_x, orig_y));
+    log.log(&format!(
+        "Native resolution captured: {}x{}",
+        orig_x, orig_y
+    ));
 
     let orig_hz = display::current_refresh_rate();
     log.log(&format!("Refresh rate captured: {}hz", orig_hz));
 
-    let _ = config::save_session(
-        &session_data_path(),
-        &SessionData {
-            x: orig_x,
-            y: orig_y,
-            hz: orig_hz,
-        },
-    );
+    let target_x: u32 = cfg.x.parse().unwrap_or(0);
+    let target_y: u32 = cfg.y.parse().unwrap_or(0);
+    let current_is_target = orig_x == target_x as i32 && orig_y == target_y as i32;
+    if !current_is_target {
+        let _ = config::save_session(
+            &session_data_path(),
+            &SessionData {
+                x: orig_x,
+                y: orig_y,
+                hz: orig_hz,
+            },
+        );
+    }
 
-    let width: u32 = cfg.x.parse().unwrap_or(0);
-    let height: u32 = cfg.y.parse().unwrap_or(0);
-    log.log(&format!("Applying stretch: {}x{} @ {}hz", width, height, orig_hz));
-    let applied = display::set_resolution(width, height, orig_hz);
+    let width = target_x;
+    let height = target_y;
+    log.log(&format!(
+        "Applying stretch: {}x{} @ {}hz",
+        width, height, orig_hz
+    ));
+    let applied = width > 0
+        && height > 0
+        && display::resolution_supported_at(width, height, orig_hz)
+        && display::set_resolution(width, height, orig_hz);
     log.log(&format!("set_resolution result: {}", applied));
 
     let (check_x, check_y) = display::current_resolution();
@@ -94,7 +106,9 @@ pub fn launch_toolbox() {
     let mut riot_path = get_riot_client_path();
     log.log(&format!(
         "Registry Riot Client path: {}",
-        riot_path.clone().unwrap_or_else(|| "NOT FOUND in registry".into())
+        riot_path
+            .clone()
+            .unwrap_or_else(|| "NOT FOUND in registry".into())
     ));
     if riot_path.is_none() {
         riot_path = scan_drives_for_riot();
@@ -144,7 +158,7 @@ pub fn launch_toolbox() {
                     "New folders detected: {:?} - patching immediately",
                     new_folders
                 ));
-                ini::run_installation(&root, &cfg.x, &cfg.y, cfg.perf);
+                ini::run_installation(&root, &cfg.x, &cfg.y);
             }
             break;
         }
@@ -172,7 +186,7 @@ pub fn launch_toolbox() {
 
         if !valorant_running() {
             log.log("Valorant closed during watch window - patching and exiting");
-            ini::run_installation(&root, &cfg.x, &cfg.y, cfg.perf);
+            ini::run_installation(&root, &cfg.x, &cfg.y);
             patch_fired = true;
             break;
         }
@@ -185,8 +199,11 @@ pub fn launch_toolbox() {
             .collect();
 
         if !changed.is_empty() {
-            log.log(&format!("INI change detected: {:?} - patching now", changed));
-            ini::run_installation(&root, &cfg.x, &cfg.y, cfg.perf);
+            log.log(&format!(
+                "INI change detected: {:?} - patching now",
+                changed
+            ));
+            ini::run_installation(&root, &cfg.x, &cfg.y);
             last_mtimes = ini::ini_mtimes(&root);
             last_change_time = Instant::now();
             patch_fired = true;
@@ -198,14 +215,14 @@ pub fn launch_toolbox() {
 
     if !patch_fired {
         log.log("No INI changes detected - patching as safety net");
-        ini::run_installation(&root, &cfg.x, &cfg.y, cfg.perf);
+        ini::run_installation(&root, &cfg.x, &cfg.y);
     }
 
     log.log("INI watch complete.");
 
     if !valorant_running() {
         log.log("Valorant already closed - final patch then restoring.");
-        ini::run_installation(&root, &cfg.x, &cfg.y, cfg.perf);
+        ini::run_installation(&root, &cfg.x, &cfg.y);
         restore_and_exit(orig_x, orig_y);
         return;
     }
@@ -220,7 +237,7 @@ pub fn launch_toolbox() {
     }
 
     log.log("Phase C - final INI patch after Valorant closed...");
-    ini::run_installation(&root, &cfg.x, &cfg.y, cfg.perf);
+    ini::run_installation(&root, &cfg.x, &cfg.y);
     log.log("Phase C - restoring resolution and exiting.");
     restore_and_exit(orig_x, orig_y);
 }
@@ -239,6 +256,13 @@ pub fn restore_and_exit(fallback_x: i32, fallback_y: i32) {
     });
 
     display::set_resolution(res_x as u32, res_y as u32, res_hz);
+
+    if let Some(cfg) = config::load_config(&config_path()) {
+        let ids = cfg.all_instance_ids();
+        if !ids.is_empty() {
+            installer::enable_monitors(&ids);
+        }
+    }
 
     let vbs_path = crate::infrastructure::paths::documents_dir().join("_make_shortcut.vbs");
     let _ = std::fs::remove_file(&vbs_path);

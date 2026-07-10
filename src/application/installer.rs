@@ -1,13 +1,14 @@
 use crate::domain::config::{Config, MonitorSelection};
-use crate::presentation::dialog;
+use crate::domain::{config, constants::APP_NAME};
 use crate::infrastructure::display;
+use crate::infrastructure::ini;
 use crate::infrastructure::paths::{config_path, ensure_data_folder, valorant_config_root};
 use crate::infrastructure::process::{has_nvidia_gpu, pnputil_disable, pnputil_enable};
+use crate::presentation::dialog;
 use crate::presentation::shortcut::{create_shortcut, remove_shortcut};
-use crate::domain::{config, constants::APP_NAME};
-use crate::infrastructure::ini;
 
-const NVIDIA_MESSAGE: &str = "To prevent black bars in Valorant you must enable GPU scaling override:\n\n\
+const NVIDIA_MESSAGE: &str =
+    "To prevent black bars in Valorant you must enable GPU scaling override:\n\n\
 1. Right-click your desktop -> NVIDIA Control Panel\n\
 2. Click 'Adjust desktop size and position'\n\
 3. Set Scaling to 'Full-screen'\n\
@@ -69,14 +70,8 @@ pub fn perform_install(cfg: &Config, show_dialogs: bool) -> bool {
     }
 
     let root = valorant_config_root();
-    ini::run_installation(&root, &cfg.x, &cfg.y, cfg.perf);
-    display::register_custom_resolution(width, height);
+    ini::run_installation(&root, &cfg.x, &cfg.y);
     check_nvidia_scaling();
-
-    let ids = cfg.all_instance_ids();
-    if !ids.is_empty() {
-        disable_monitors(&ids);
-    }
 
     let shortcut_ok = create_shortcut();
 

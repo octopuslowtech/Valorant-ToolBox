@@ -10,21 +10,14 @@ pub struct MonitorSelection {
 pub struct Config {
     pub x: String,
     pub y: String,
-    pub perf: bool,
     #[serde(default)]
     pub monitors: Vec<MonitorSelection>,
-    #[serde(default = "default_true")]
-    pub enable_blood: bool,
-    #[serde(default = "default_true")]
-    pub enable_vng_remove: bool,
     #[serde(default = "default_true")]
     pub enable_nvidia_scaling: bool,
     #[serde(default = "default_language")]
     pub language: String,
-#[serde(default = "default_true")]
+    #[serde(default = "default_true")]
     pub minimize_to_tray: bool,
-    #[serde(default = "default_graphics_preset")]
-    pub graphics_preset: String,
     #[serde(default)]
     pub custom_w: String,
     #[serde(default)]
@@ -47,14 +40,10 @@ impl Config {
         Config {
             x: "1440".to_string(),
             y: "1080".to_string(),
-            perf: true,
             monitors: Vec::new(),
-            enable_blood: true,
-            enable_vng_remove: true,
             enable_nvidia_scaling: true,
             language: "en".to_string(),
             minimize_to_tray: true,
-            graphics_preset: "low".to_string(),
             custom_w: String::new(),
             custom_h: String::new(),
             vibrance_level: 50,
@@ -96,10 +85,6 @@ fn default_true() -> bool {
 
 fn default_language() -> String {
     "en".to_string()
-}
-
-fn default_graphics_preset() -> String {
-    "low".to_string()
 }
 
 fn default_vibrance_level() -> i32 {

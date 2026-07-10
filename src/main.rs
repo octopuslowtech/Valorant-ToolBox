@@ -17,8 +17,29 @@ fn get_arg(args: &[String], prefix: &str) -> Option<String> {
         .map(|a| a[prefix.len()..].to_string())
 }
 
+fn quote_arg(arg: &str) -> String {
+    if arg.contains(' ') || arg.contains('"') {
+        format!("\"{}\"", arg.replace('"', "\\\""))
+    } else {
+        arg.to_string()
+    }
+}
+
+fn args_for_elevation(args: &[String]) -> String {
+    args.iter()
+        .skip(1)
+        .map(|a| quote_arg(a))
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
+
+    if !admin::is_admin() {
+        admin::elevate(&args_for_elevation(&args));
+        return;
+    }
 
     if args.iter().any(|a| a == "--launch") {
         application::launcher::launch_toolbox();
@@ -33,14 +54,12 @@ fn main() {
     if args.iter().any(|a| a == "--install-direct") {
         let x = get_arg(&args, "--res-x=").unwrap_or_else(|| "1440".into());
         let y = get_arg(&args, "--res-y=").unwrap_or_else(|| "1080".into());
-        let perf = get_arg(&args, "--perf=").unwrap_or_else(|| "1".into()) != "0";
         let raw_monitors = get_arg(&args, "--monitors=").unwrap_or_default();
         let monitors = application::installer::parse_monitors_arg(&raw_monitors);
 
         let cfg = Config {
             x,
             y,
-            perf,
             monitors,
             ..Config::default_features()
         };
@@ -48,28 +67,21 @@ fn main() {
         return;
     }
 
-    if !admin::is_admin() {
-        admin::elevate("");
-        return;
-    }
-
-    if !acquire_single_instance() {
+    let Some(_single_instance) = acquire_single_instance() else {
         presentation::dialog::info("Valorant-ToolBox", "Valorant-ToolBox is already running.");
         return;
-    }
+    };
 
     let _ = presentation::app::run();
 }
 
-fn acquire_single_instance() -> bool {
+fn acquire_single_instance() -> Option<windows::Win32::Foundation::HANDLE> {
     unsafe {
-        let handle = CreateMutexW(None, true, w!("Global\\ValorantToolBox_SingleInstance"));
+        let handle = CreateMutexW(None, true, w!("Global\\ValorantToolBox_SingleInstance")).ok()?;
         if GetLastError() == ERROR_ALREADY_EXISTS {
-            if let Ok(h) = handle {
-                let _ = CloseHandle(h);
-            }
-            return false;
+            let _ = CloseHandle(handle);
+            return None;
         }
-        true
+        Some(handle)
     }
 }

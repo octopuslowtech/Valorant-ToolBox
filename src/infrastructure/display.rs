@@ -1,11 +1,13 @@
 use windows::core::PCWSTR;
 use windows::Win32::Graphics::Gdi::{
-    ChangeDisplaySettingsExW, EnumDisplayDevicesW, EnumDisplaySettingsW, CDS_NORESET,
-    CDS_TEST, CDS_TYPE, CDS_UPDATEREGISTRY, DEVMODEW, DISPLAY_DEVICEW,
-    DISPLAY_DEVICE_PRIMARY_DEVICE, DISP_CHANGE_SUCCESSFUL, DM_DISPLAYFREQUENCY, DM_PELSHEIGHT,
-    DM_PELSWIDTH, ENUM_CURRENT_SETTINGS,
+    ChangeDisplaySettingsExW, EnumDisplayDevicesW, EnumDisplaySettingsW, CDS_TEST,
+    CDS_UPDATEREGISTRY, DEVMODEW, DISPLAY_DEVICEW, DISPLAY_DEVICE_PRIMARY_DEVICE,
+    DISP_CHANGE_SUCCESSFUL, DM_DISPLAYFREQUENCY, DM_PELSHEIGHT, DM_PELSWIDTH,
+    ENUM_CURRENT_SETTINGS,
 };
-use windows::Win32::UI::HiDpi::{SetProcessDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2};
+use windows::Win32::UI::HiDpi::{
+    SetProcessDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2,
+};
 use windows::Win32::UI::WindowsAndMessaging::{GetSystemMetrics, SM_CXSCREEN, SM_CYSCREEN};
 
 pub fn set_dpi_aware() {
@@ -38,7 +40,6 @@ pub fn current_refresh_rate() -> u32 {
     60
 }
 
-
 fn primary_device_name() -> Option<Vec<u16>> {
     unsafe {
         let mut i = 0u32;
@@ -51,7 +52,14 @@ fn primary_device_name() -> Option<Vec<u16>> {
                 break;
             }
             if dd.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE != 0 {
-                return Some(dd.DeviceName.to_vec());
+                let end = dd
+                    .DeviceName
+                    .iter()
+                    .position(|c| *c == 0)
+                    .unwrap_or(dd.DeviceName.len());
+                let mut name = dd.DeviceName[..end].to_vec();
+                name.push(0);
+                return Some(name);
             }
             i += 1;
         }
@@ -60,26 +68,17 @@ fn primary_device_name() -> Option<Vec<u16>> {
 }
 
 pub fn resolution_supported(width: u32, height: u32) -> bool {
-    unsafe {
-        let mut dm = new_devmode();
-        dm.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
-        dm.dmPelsWidth = width;
-        dm.dmPelsHeight = height;
-        let result = ChangeDisplaySettingsExW(PCWSTR::null(), Some(&dm), None, CDS_TEST, None);
-        result == DISP_CHANGE_SUCCESSFUL
-    }
+    resolution_supported_at(width, height, current_refresh_rate())
 }
 
-pub fn register_custom_resolution(width: u32, height: u32) -> bool {
-    let hz = current_refresh_rate();
+pub fn resolution_supported_at(width: u32, height: u32, hz: u32) -> bool {
     unsafe {
         let mut dm = new_devmode();
         dm.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT | DM_DISPLAYFREQUENCY;
         dm.dmPelsWidth = width;
         dm.dmPelsHeight = height;
-        dm.dmDisplayFrequency = hz;
-        let flags = CDS_TYPE(CDS_UPDATEREGISTRY.0 | CDS_NORESET.0);
-        let result = ChangeDisplaySettingsExW(PCWSTR::null(), Some(&dm), None, flags, None);
+        dm.dmDisplayFrequency = if hz > 0 { hz } else { 60 };
+        let result = ChangeDisplaySettingsExW(PCWSTR::null(), Some(&dm), None, CDS_TEST, None);
         result == DISP_CHANGE_SUCCESSFUL
     }
 }
@@ -92,7 +91,7 @@ pub fn set_resolution(width: u32, height: u32, hz: u32) -> bool {
         dm.dmPelsHeight = height;
         dm.dmDisplayFrequency = if hz > 0 { hz } else { 60 };
 
-        let ok = match primary_device_name() {
+        match primary_device_name() {
             Some(mut name) => {
                 let result = ChangeDisplaySettingsExW(
                     PCWSTR::from_raw(name.as_mut_ptr()),
@@ -104,12 +103,15 @@ pub fn set_resolution(width: u32, height: u32, hz: u32) -> bool {
                 result == DISP_CHANGE_SUCCESSFUL
             }
             None => {
-                let result =
-                    ChangeDisplaySettingsExW(PCWSTR::null(), Some(&dm), None, CDS_UPDATEREGISTRY, None);
+                let result = ChangeDisplaySettingsExW(
+                    PCWSTR::null(),
+                    Some(&dm),
+                    None,
+                    CDS_UPDATEREGISTRY,
+                    None,
+                );
                 result == DISP_CHANGE_SUCCESSFUL
             }
-        };
-
-        ok
+        }
     }
 }

@@ -6,7 +6,13 @@ const DETACHED_PROCESS: u32 = 0x00000008;
 
 pub fn is_process_running(name: &str) -> bool {
     let output = Command::new("tasklist")
-        .args(["/FI", &format!("IMAGENAME eq {}", name), "/NH", "/FO", "CSV"])
+        .args([
+            "/FI",
+            &format!("IMAGENAME eq {}", name),
+            "/NH",
+            "/FO",
+            "CSV",
+        ])
         .creation_flags(CREATE_NO_WINDOW)
         .output();
     match output {
@@ -19,16 +25,9 @@ pub fn is_process_running(name: &str) -> bool {
 }
 
 pub fn has_nvidia_gpu() -> bool {
-    let output = Command::new("powershell")
-        .args(["-NoProfile", "-Command", "Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name"])
-        .creation_flags(CREATE_NO_WINDOW)
-        .output();
-    match output {
-        Ok(out) => String::from_utf8_lossy(&out.stdout)
-            .to_lowercase()
-            .contains("nvidia"),
-        Err(_) => false,
-    }
+    gpu_names()
+        .iter()
+        .any(|name| name.to_lowercase().contains("nvidia"))
 }
 
 pub fn pnputil_disable(instance_id: &str) {
@@ -45,10 +44,13 @@ pub fn pnputil_enable(instance_id: &str) {
         .output();
 }
 
-
 pub fn gpu_names() -> Vec<String> {
     let output = Command::new("powershell")
-        .args(["-NoProfile", "-Command", "Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name"])
+        .args([
+            "-NoProfile",
+            "-Command",
+            "Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name",
+        ])
         .creation_flags(CREATE_NO_WINDOW)
         .output();
     match output {
@@ -60,4 +62,3 @@ pub fn gpu_names() -> Vec<String> {
         Err(_) => Vec::new(),
     }
 }
-

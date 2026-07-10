@@ -5,25 +5,6 @@ use walkdir::WalkDir;
 use crate::domain::constants::ELITE_INI_TEMPLATE;
 use crate::infrastructure::paths::set_read_only;
 
-const STANDARD_RULES: &[(&str, &str)] = &[
-    ("LastUserConfirmedResolutionSizeX=", "LastUserConfirmedResolutionSizeX={X}"),
-    ("LastUserConfirmedResolutionSizeY=", "LastUserConfirmedResolutionSizeY={Y}"),
-    ("LastUserConfirmedDesiredScreenWidth=", "LastUserConfirmedDesiredScreenWidth={X}"),
-    ("LastUserConfirmedDesiredScreenHeight=", "LastUserConfirmedDesiredScreenHeight={Y}"),
-    ("ResolutionSizeX=", "ResolutionSizeX={X}"),
-    ("ResolutionSizeY=", "ResolutionSizeY={Y}"),
-    ("DesiredScreenWidth=", "DesiredScreenWidth={X}"),
-    ("DesiredScreenHeight=", "DesiredScreenHeight={Y}"),
-    ("LastConfirmedFullscreenMode=", "LastConfirmedFullscreenMode=2"),
-    ("PreferredFullscreenMode=", "PreferredFullscreenMode=2"),
-    ("FullscreenMode=", "FullscreenMode=2"),
-    ("bLastConfirmedShouldLetterbox=", "bLastConfirmedShouldLetterbox=False"),
-    ("bShouldLetterbox=", "bShouldLetterbox=False"),
-    ("LastConfirmedDefaultMonitorDeviceID=", "LastConfirmedDefaultMonitorDeviceID="),
-    ("DefaultMonitorDeviceID=", "DefaultMonitorDeviceID="),
-    ("DefaultMonitorIndex=", "DefaultMonitorIndex=0"),
-];
-
 const APPEND_KEYS: &[(&str, &str)] = &[
     ("bShouldLetterbox", "False"),
     ("bLastConfirmedShouldLetterbox", "False"),
@@ -38,69 +19,45 @@ const APPEND_KEYS: &[(&str, &str)] = &[
 
 const SHOOTER_SECTION: &str = "[/Script/ShooterGame.ShooterGameUserSettings]";
 
-fn match_rule(line: &str) -> Option<&'static str> {
-    for (needle, replacement) in STANDARD_RULES {
-        if line.contains(needle) {
-            return Some(replacement);
-        }
-    }
-    None
-}
-
-fn patch_standard(path: &Path, x: &str, y: &str) {
-    set_read_only(path, false);
-    let content = match std::fs::read_to_string(path) {
-        Ok(c) => c,
-        Err(_) => return,
-    };
-    let mut out = String::new();
-    for line in content.lines() {
-        match match_rule(line) {
-            Some(repl) => {
-                let replaced = repl.replace("{X}", x).replace("{Y}", y);
-                out.push_str(&replaced);
-            }
-            None => out.push_str(line),
-        }
-        out.push('\n');
-    }
-    let _ = std::fs::write(path, out);
-    set_read_only(path, true);
-}
-
-fn patch_elite(path: &Path, x: &str, y: &str) {
-    set_read_only(path, false);
-    let content = ELITE_INI_TEMPLATE.replace("{X}", x).replace("{Y}", y);
-    let _ = std::fs::write(path, content);
-    set_read_only(path, true);
-}
-
 fn apply_append_keys(content: &str) -> String {
-    let mut result = content.to_string();
-    for (key, val) in APPEND_KEYS {
-        let prefix = format!("{}=", key);
-        let kept: Vec<&str> = result
-            .lines()
-            .filter(|line| !line.starts_with(&prefix))
-            .collect();
-        let trailing_newline = result.ends_with('\n');
-        result = kept.join("\n");
-        if trailing_newline {
-            result.push('\n');
-        }
+    let newline = if content.contains("\r\n") {
+        "\r\n"
+    } else {
+        "\n"
+    };
+    let trailing_newline = content.ends_with('\n');
+    let prefixes: Vec<String> = APPEND_KEYS
+        .iter()
+        .map(|(key, _)| format!("{}=", key))
+        .collect();
+    let mut lines: Vec<String> = content
+        .lines()
+        .filter(|line| {
+            let trimmed = line.trim_start();
+            !prefixes.iter().any(|prefix| trimmed.starts_with(prefix))
+        })
+        .map(|line| line.to_string())
+        .collect();
+    let entries: Vec<String> = APPEND_KEYS
+        .iter()
+        .map(|(key, val)| format!("{}={}", key, val))
+        .collect();
 
-        let entry = format!("{}={}", key, val);
-        if result.contains(SHOOTER_SECTION) {
-            let header_with_nl = format!("{}\n", SHOOTER_SECTION);
-            let injected = format!("{}\n{}\n", SHOOTER_SECTION, entry);
-            result = result.replacen(&header_with_nl, &injected, 1);
-        } else {
-            if !result.ends_with('\n') && !result.is_empty() {
-                result.push('\n');
-            }
-            result.push_str(&entry);
-            result.push('\n');
+    if let Some(pos) = lines.iter().position(|line| line.trim() == SHOOTER_SECTION) {
+        for (idx, entry) in entries.into_iter().enumerate() {
+            lines.insert(pos + 1 + idx, entry);
         }
+    } else {
+        if !lines.is_empty() {
+            lines.push(String::new());
+        }
+        lines.push(SHOOTER_SECTION.to_string());
+        lines.extend(entries);
+    }
+
+    let mut result = lines.join(newline);
+    if trailing_newline || !result.is_empty() {
+        result.push_str(newline);
     }
     result
 }
@@ -118,25 +75,18 @@ pub fn collect_ini_files(root: &Path) -> Vec<std::path::PathBuf> {
         .collect()
 }
 
-pub fn run_installation(root: &Path, x: &str, y: &str, perf: bool) {
+pub fn run_installation(root: &Path, x: &str, y: &str) -> usize {
+    let mut patched_count = 0;
     for ini_path in collect_ini_files(root) {
         set_read_only(&ini_path, false);
-
-        if perf {
-            patch_elite(&ini_path, x, y);
-        } else {
-            patch_standard(&ini_path, x, y);
-        }
-
-        set_read_only(&ini_path, false);
-        let content = match std::fs::read_to_string(&ini_path) {
-            Ok(c) => c,
-            Err(_) => continue,
-        };
+        let content = ELITE_INI_TEMPLATE.replace("{X}", x).replace("{Y}", y);
         let patched = apply_append_keys(&content);
-        let _ = std::fs::write(&ini_path, patched);
+        if std::fs::write(&ini_path, patched).is_ok() {
+            patched_count += 1;
+        }
         set_read_only(&ini_path, true);
     }
+    patched_count
 }
 
 pub fn unlock_all_inis(root: &Path) -> usize {

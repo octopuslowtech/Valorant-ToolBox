@@ -1,0 +1,29 @@
+{
+  "nextId": 4,
+  "tasks": [
+    {
+      "id": "2",
+      "subject": "Fix critical runtime bugs",
+      "description": "Implement batch fixes for admin ordering, monitor disable/restore safety, GUI custom resolution validation, native session capture, INI error handling, startup/language persistence, and single-instance lifetime. Run fmt, clippy, and check after changes.",
+      "status": "completed",
+      "activeForm": "Fixing critical runtime bugs",
+      "metadata": {},
+      "blocks": [],
+      "blockedBy": [],
+      "createdAt": 1782659666958,
+      "updatedAt": 1782660343208
+    },
+    {
+      "id": "3",
+      "subject": "Fix secondary reliability bugs",
+      "description": "Implement remaining reliability fixes: make optimizer reversible/confirmed in UI, improve INI append order and newline preservation, improve vibrance stop fallback and library handle cleanup if feasible, escape shortcut VBS paths, then run fmt, check, clippy.",
+      "status": "completed",
+      "activeForm": "Fixing secondary reliability bugs",
+      "metadata": {},
+      "blocks": [],
+      "blockedBy": [],
+      "createdAt": 1782671586414,
+      "updatedAt": 1782672120693
+    }
+  ]
+}

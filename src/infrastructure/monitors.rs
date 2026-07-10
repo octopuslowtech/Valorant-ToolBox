@@ -42,7 +42,8 @@ pub fn enumerate_monitors() -> Vec<MonitorEntry> {
             let name = match inst_key.get_value::<String, _>("FriendlyName") {
                 Ok(raw) => {
                     let last = raw.split(';').next_back().unwrap_or("").trim().to_string();
-                    let trimmed = if last.starts_with('(') && last.ends_with(')') && last.len() >= 2 {
+                    let trimmed = if last.starts_with('(') && last.ends_with(')') && last.len() >= 2
+                    {
                         last[1..last.len() - 1].to_string()
                     } else {
                         last

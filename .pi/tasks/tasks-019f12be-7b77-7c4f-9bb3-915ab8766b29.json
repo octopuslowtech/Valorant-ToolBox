@@ -1,0 +1,17 @@
+{
+  "nextId": 2,
+  "tasks": [
+    {
+      "id": "1",
+      "subject": "Remove performance tab and related code",
+      "description": "Find performance tab implementation and connected code paths, remove them cleanly while preserving app build, then format and verify with Rust tooling.",
+      "status": "completed",
+      "activeForm": "Removing performance tab",
+      "metadata": {},
+      "blocks": [],
+      "blockedBy": [],
+      "createdAt": 1782725918351,
+      "updatedAt": 1782726295403
+    }
+  ]
+}
